@@ -26,15 +26,24 @@ A production-ready Point of Sale (POS) system for clothing stores with Google Sh
 - Payment methods: Cash / Debt (Hutang)
 - Transaction confirmation
 
-### 2. Automatic Calculations
+### 2. Debt Management 💳 (NEW!)
+- Track customer debts with detailed records
+- Record monthly payment installments
+- Auto-calculate remaining balance
+- Payment history tracking
+- Status tracking: Active / Paid / Overdue
+- Search and filter by debtor name and status
+- Statistics dashboard for active debts
+
+### 3. Automatic Calculations
 - Profit per item
 - Daily profit
 - Profit for 7, 14, 21, 30 days
 - Monthly profit
 - Remaining stock tracking
 
-### 3. Google Sheets Integration
-Automatic sync with three sheets:
+### 4. Google Sheets Integration
+Automatic sync with four sheets:
 
 **MASTER_BARANG**
 - Columns: SKU | Nama | HPP | HargaJual | StokAwal | StokSekarang
@@ -48,13 +57,17 @@ Automatic sync with three sheets:
 - Auto-calculated profit summaries
 - Today, 7/14/21/30 days, Monthly
 
-### 4. Admin Dashboard
+**CATATAN_HUTANG** (NEW!)
+- Columns: ID | Nama Penghutang | Total Hutang | Sisa Hutang | Cicilan Per Bulan | Tanggal Hutang | Tanggal Jatuh Tempo | Status | Catatan | Riwayat Pembayaran
+- Auto-sync debt records and payments
+
+### 5. Admin Dashboard
 - Profit visualization charts (Recharts)
 - Sales summary
 - Inventory overview
 - Low stock alerts
 
-### 5. Report Export
+### 6. Report Export
 - PDF sales reports with transaction details
 - Excel reports with formatted data
 - Custom date range filtering
@@ -321,5 +334,6 @@ MIT
 ## Support
 
 For issues or questions, please open an issue on GitHub.
-#   p o s - k a s i r - b u t i k  
+#   p o s - k a s i r - b u t i k 
+ 
  
