@@ -40,6 +40,30 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Environment variable check endpoint
+app.get('/api/test-env', (req, res) => {
+  const envCheck = {
+    GOOGLE_SPREADSHEET_ID: !!process.env.GOOGLE_SPREADSHEET_ID,
+    GOOGLE_SERVICE_ACCOUNT_EMAIL: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    GOOGLE_PRIVATE_KEY: !!process.env.GOOGLE_PRIVATE_KEY,
+    SHEET_MASTER_BARANG: !!process.env.SHEET_MASTER_BARANG,
+    SHEET_TRANSAKSI_LOG: !!process.env.SHEET_TRANSAKSI_LOG,
+    SHEET_DASHBOARD_WAKTU: !!process.env.SHEET_DASHBOARD_WAKTU,
+    SHEET_CATATAN_HUTANG: !!process.env.SHEET_CATATAN_HUTANG,
+    CLOUDINARY_CLOUD_NAME: !!process.env.CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY: !!process.env.CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET: !!process.env.CLOUDINARY_API_SECRET,
+  };
+
+  const allSet = Object.values(envCheck).every(v => v === true);
+
+  res.json({
+    success: allSet,
+    message: allSet ? 'All environment variables are set' : 'Some environment variables are missing',
+    variables: envCheck
+  });
+});
+
 app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/reports', reportRoutes);
