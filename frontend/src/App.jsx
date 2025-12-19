@@ -4,7 +4,7 @@ import CashierPage from './pages/CashierPage';
 import DashboardPage from './pages/DashboardPage';
 import ProductManagementPage from './pages/ProductManagementPage';
 import DebtManagementPage from './pages/DebtManagementPage';
-import LiquidGlass from './components/LiquidGlass'; // Import Liquid Glass
+import ScrollLiquidGlass from './components/ScrollLiquidGlass'; // Import Scroll Liquid Glass
 
 function NavLink({ to, children, icon }) {
     const location = useLocation();
@@ -33,7 +33,7 @@ function NavLink({ to, children, icon }) {
 function AppContent() {
     return (
         <div className="min-h-screen bg-[#f8f9fa] text-[#1a1a2e]"> {/* White mode base */}
-            <LiquidGlass /> {/* Effect */}
+            <ScrollLiquidGlass /> {/* Scroll-triggered liquid glass effect */}
 
             {/* Light ambient background */}
             <div className="fixed inset-0 bg-gradient-to-br from-white via-gray-50 to-white -z-10" />
@@ -51,7 +51,7 @@ function AppContent() {
                         {/* Logo */}
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 flex items-center justify-center animate-float">
-                                <img src="/logo-iyam.png" alt="iyam logo" className="w-full h-full object-contain" />
+                                <img src="/logo-iyam.jpg" alt="iyam logo" className="w-full h-full object-contain" />
                             </div>
                             <div>
                                 <h1 className="text-[#1a1a2e] text-2xl font-extrabold tracking-tight">
