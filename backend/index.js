@@ -12,8 +12,40 @@ const debtRoutes = require('./routes/debtRoutes');
 
 const app = express();
 
+// Enhanced CORS configuration for Vercel
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://pos-kasir-butik-iyam.vercel.app',
+      /\.vercel\.app$/  // Allow all Vercel preview deployments
+    ];
+
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return allowed === origin;
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(null, true); // Allow anyway for now, log for debugging
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -76,12 +108,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'POS Backend is running on Vercel' });
 });
 
-// Error handling middleware
+// Error handling middleware with detailed logging
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('=== ERROR ===');
+  console.error('Path:', req.path);
+  console.error('Method:', req.method);
+  console.error('Error:', err.stack);
+  console.error('Message:', err.message);
+  console.error('=============');
+
   res.status(500).json({
+    success: false,
     error: 'Internal Server Error',
-    message: err.message
+    message: process.env.NODE_ENV === 'production' ? 'An error occurred' : err.message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 });
 
