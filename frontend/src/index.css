@@ -12,9 +12,11 @@ body {
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #0f0f1e;
+    background: #f8f9fa;
+    /* White/Light Background */
     min-height: 100vh;
-    color: #ffffff;
+    color: #1a1a2e;
+    /* Dark Text */
 }
 
 /* Smooth transitions */
@@ -22,14 +24,14 @@ body {
     transition: all 0.2s ease-in-out;
 }
 
-/* Custom scrollbar - Dark Mode */
+/* Custom scrollbar - Light Mode */
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #1a1a2e;
+    background: #e2e8f0;
     border-radius: 10px;
 }
 
@@ -42,29 +44,29 @@ body {
     background: linear-gradient(180deg, #818cf8 0%, #9333ea 100%);
 }
 
-/* Dark glass effect */
+/* Light glass effect (formerly dark glass) */
 .glass-dark {
-    background: rgba(26, 26, 46, 0.7);
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(102, 126, 234, 0.2);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px 0 rgba(7, 37, 78, 0.1);
 }
 
-/* Card styling */
+/* Card styling - Light Mode */
 .card-dark {
-    background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(31, 31, 51, 0.95) 100%);
-    border: 1px solid rgba(102, 126, 234, 0.3);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+    border: 1px solid rgba(102, 126, 234, 0.15);
     border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
 }
 
 /* Glow effect for cards on hover */
 .card-dark:hover {
-    border-color: rgba(102, 126, 234, 0.6);
-    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.4);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.1);
 }
 
-/* Animations */
+/* Animations - Unchanged */
 @keyframes slideIn {
     from {
         opacity: 0;
@@ -113,11 +115,11 @@ body {
 
     0%,
     100% {
-        box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
     }
 
     50% {
-        box-shadow: 0 0 30px rgba(102, 126, 234, 0.8);
+        box-shadow: 0 0 30px rgba(102, 126, 234, 0.4);
     }
 }
 
@@ -138,7 +140,39 @@ body {
 }
 
 .shimmer {
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.05) 75%);
+    background: linear-gradient(90deg, rgba(226, 232, 240, 0.4) 25%, rgba(226, 232, 240, 0.7) 50%, rgba(226, 232, 240, 0.4) 75%);
     background-size: 1000px 100%;
     animation: shimmer 2s infinite;
+}
+
+/* Typography Overrides for Dark Mode classes usually present */
+.text-gray-300 {
+    color: #4b5563 !important;
+    /* Cool gray 600 */
+}
+
+.text-gray-400 {
+    color: #6b7280 !important;
+    /* Cool gray 500 */
+}
+
+.text-gray-500 {
+    color: #6b7280 !important;
+    /* Cool gray 500 */
+}
+
+.text-white {
+    color: #1a1a2e !important;
+    /* Dark Blue - overriding 'text-white' utility for light mode compatibility */
+}
+
+/* Button specific text color override to keep them readable if they have dark backgrounds */
+button .text-white,
+.bg-gradient-to-r .text-white {
+    color: #ffffff !important;
+}
+
+/* Nav Link active state override */
+a.bg-gradient-to-r.text-white {
+    color: #ffffff !important;
 }
