@@ -20,6 +20,26 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Note: No static file serving needed - images are now on Google Drive
 
 // Routes
+app.get('/', (req, res) => {
+  res.send('Welcome to POS API. Backend is running.');
+});
+
+app.get('/api', (req, res) => {
+  res.json({
+    success: true,
+    message: 'POS API Base Endpoint',
+    endpoints: [
+      '/api/products',
+      '/api/transactions',
+      '/api/reports',
+      '/api/dashboard',
+      '/api/sales',
+      '/api/debts',
+      '/api/health'
+    ]
+  });
+});
+
 app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/reports', reportRoutes);
