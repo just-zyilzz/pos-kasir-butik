@@ -65,7 +65,7 @@ function ProductManagementPage() {
 
     const openEditModal = (product) => {
         setEditingProduct(product);
-        setImagePreview(product.imageUrl ? `http://localhost:5000${product.imageUrl}` : null);
+        setImagePreview(product.imageUrl || null);
         setSelectedImageFile(null);
         setFormData({
             sku: product.sku,
@@ -222,7 +222,7 @@ function ProductManagementPage() {
                                     <td className="px-6 py-4 text-sm">
                                         {product.imageUrl ? (
                                             <img
-                                                src={`http://localhost:5000${product.imageUrl}`}
+                                                src={product.imageUrl}
                                                 alt={product.nama}
                                                 className="w-16 h-16 object-cover rounded-lg border-2 border-primary/30"
                                             />

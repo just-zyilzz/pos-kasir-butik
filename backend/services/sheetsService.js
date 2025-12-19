@@ -5,18 +5,46 @@ class SheetsService {
         this.auth = new google.auth.JWT(
             process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
             null,
-            process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            process.env.GOOGLE_PRIVATE_KEY ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n') : '',
             ['https://www.googleapis.com/auth/spreadsheets']
         );
+        if (!process.env.GOOGLE_PRIVATE_KEY) {
+            console.warn('Warning: GOOGLE_PRIVATE_KEY is not defined in environment variables');
+        }
         this.sheets = google.sheets({ version: 'v4', auth: this.auth });
         this.spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+        this.resolvedSheets = {};
+    }
+
+    async resolveSheetName(configName) {
+        if (!configName) return configName;
+        if (this.resolvedSheets[configName]) return this.resolvedSheets[configName];
+
+        try {
+            const response = await this.sheets.spreadsheets.get({
+                spreadsheetId: this.spreadsheetId,
+            });
+            const sheets = response.data.sheets || [];
+            const match = sheets.find(s => s.properties.title.trim() === configName.trim());
+
+            if (match) {
+                console.log(`Resolved sheet name: "${configName}" -> "${match.properties.title}"`);
+                this.resolvedSheets[configName] = match.properties.title;
+                return match.properties.title;
+            }
+            return configName;
+        } catch (error) {
+            console.error('Error resolving sheet name:', error);
+            return configName;
+        }
     }
 
     async getAllProducts() {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_MASTER_BARANG);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_MASTER_BARANG}!A2:G`,
+                range: `'${sheetName}'!A2:G`,
             });
 
             const rows = response.data.values || [];
@@ -47,9 +75,10 @@ class SheetsService {
 
     async updateStock(sku, newStock) {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_MASTER_BARANG);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_MASTER_BARANG}!A2:A`,
+                range: `'${sheetName}'!A2:A`,
             });
 
             const rows = response.data.values || [];
@@ -62,7 +91,7 @@ class SheetsService {
             const actualRowNumber = rowIndex + 2;
             await this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_MASTER_BARANG}!F${actualRowNumber}`,
+                range: `'${sheetName}'!F${actualRowNumber}`,
                 valueInputOption: 'RAW',
                 requestBody: {
                     values: [[newStock]],
@@ -89,9 +118,10 @@ class SheetsService {
                 transaction.keuntungan,
             ]];
 
+            const sheetName = await this.resolveSheetName(process.env.SHEET_TRANSAKSI_LOG);
             await this.sheets.spreadsheets.values.append({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_TRANSAKSI_LOG}!A:H`,
+                range: `'${sheetName}'!A:H`,
                 valueInputOption: 'RAW',
                 requestBody: { values },
             });
@@ -105,9 +135,10 @@ class SheetsService {
 
     async getTransactions(startDate = null, endDate = null) {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_TRANSAKSI_LOG);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_TRANSAKSI_LOG}!A2:H`,
+                range: `'${sheetName}'!A2:H`,
             });
 
             const rows = response.data.values || [];
@@ -138,9 +169,10 @@ class SheetsService {
 
     async getDashboardData() {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_DASHBOARD_WAKTU);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_DASHBOARD_WAKTU}!A2:B7`,
+                range: `'${sheetName}'!A2:B7`,
             });
 
             const rows = response.data.values || [];
@@ -192,9 +224,10 @@ class SheetsService {
                 imageUrl || '', // imageUrl in column G
             ]];
 
+            const sheetName = await this.resolveSheetName(process.env.SHEET_MASTER_BARANG);
             await this.sheets.spreadsheets.values.append({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_MASTER_BARANG}!A:G`,
+                range: `'${sheetName}'!A:G`,
                 valueInputOption: 'RAW',
                 requestBody: { values },
             });
@@ -208,9 +241,10 @@ class SheetsService {
 
     async updateProduct(sku, updateData) {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_MASTER_BARANG);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_MASTER_BARANG}!A2:A`,
+                range: `'${sheetName}'!A2:A`,
             });
 
             const rows = response.data.values || [];
@@ -238,7 +272,7 @@ class SheetsService {
 
             await this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_MASTER_BARANG}!A${actualRowNumber}:G${actualRowNumber}`,
+                range: `'${sheetName}'!A${actualRowNumber}:G${actualRowNumber}`,
                 valueInputOption: 'RAW',
                 requestBody: { values },
             });
@@ -252,9 +286,10 @@ class SheetsService {
 
     async deleteProduct(sku) {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_MASTER_BARANG);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_MASTER_BARANG}!A2:A`,
+                range: `'${sheetName}'!A2:A`,
             });
 
             const rows = response.data.values || [];
@@ -428,21 +463,34 @@ class SheetsService {
         }
     }
 
+    parseFormattedNumber(value) {
+        if (!value) return 0;
+        if (typeof value === 'number') return value;
+        // Remove currency symbols, dots (thousands separator), and replace comma with dot (decimal separator)
+        const cleanValue = value.toString()
+            .replace(/Rp/g, '')
+            .replace(/\./g, '')
+            .replace(/,/g, '.')
+            .trim();
+        return parseFloat(cleanValue) || 0;
+    }
+
     // Debt Management Methods
     async getAllDebts() {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_CATATAN_HUTANG);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_CATATAN_HUTANG}!A2:J`,
+                range: `'${sheetName}'!A2:J`,
             });
 
             const rows = response.data.values || [];
             return rows.map(row => ({
                 id: row[0] || '',
                 namaPenghutang: row[1] || '',
-                totalHutang: parseFloat(row[2]) || 0,
-                sisaHutang: parseFloat(row[3]) || 0,
-                cicilanPerBulan: parseFloat(row[4]) || 0,
+                totalHutang: this.parseFormattedNumber(row[2]),
+                sisaHutang: this.parseFormattedNumber(row[3]),
+                cicilanPerBulan: this.parseFormattedNumber(row[4]),
                 tanggalHutang: row[5] || '',
                 tanggalJatuhTempo: row[6] || '',
                 status: row[7] || '',
@@ -496,9 +544,10 @@ class SheetsService {
                 '' // riwayatPembayaran initially empty
             ]];
 
+            const sheetName = await this.resolveSheetName(process.env.SHEET_CATATAN_HUTANG);
             await this.sheets.spreadsheets.values.append({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_CATATAN_HUTANG}!A:J`,
+                range: `'${sheetName}'!A:J`,
                 valueInputOption: 'RAW',
                 requestBody: { values },
             });
@@ -512,9 +561,10 @@ class SheetsService {
 
     async updateDebt(id, updateData) {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_CATATAN_HUTANG);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_CATATAN_HUTANG}!A2:A`,
+                range: `'${sheetName}'!A2:A`,
             });
 
             const rows = response.data.values || [];
@@ -556,7 +606,7 @@ class SheetsService {
 
             await this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_CATATAN_HUTANG}!A${actualRowNumber}:J${actualRowNumber}`,
+                range: `'${sheetName}'!A${actualRowNumber}:J${actualRowNumber}`,
                 valueInputOption: 'RAW',
                 requestBody: { values },
             });
@@ -570,9 +620,10 @@ class SheetsService {
 
     async recordPayment(id, paymentAmount, paymentDate) {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_CATATAN_HUTANG);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_CATATAN_HUTANG}!A2:A`,
+                range: `'${sheetName}'!A2:A`,
             });
 
             const rows = response.data.values || [];
@@ -620,7 +671,7 @@ class SheetsService {
 
             await this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_CATATAN_HUTANG}!A${actualRowNumber}:J${actualRowNumber}`,
+                range: `'${sheetName}'!A${actualRowNumber}:J${actualRowNumber}`,
                 valueInputOption: 'RAW',
                 requestBody: { values },
             });
@@ -634,9 +685,10 @@ class SheetsService {
 
     async deleteDebt(id) {
         try {
+            const sheetName = await this.resolveSheetName(process.env.SHEET_CATATAN_HUTANG);
             const response = await this.sheets.spreadsheets.values.get({
                 spreadsheetId: this.spreadsheetId,
-                range: `${process.env.SHEET_CATATAN_HUTANG}!A2:A`,
+                range: `'${sheetName}'!A2:A`,
             });
 
             const rows = response.data.values || [];
@@ -653,9 +705,8 @@ class SheetsService {
                 spreadsheetId: this.spreadsheetId,
             });
 
-            const sheetName = process.env.SHEET_CATATAN_HUTANG;
-            const sheet = sheetMetadata.data.sheets.find(s => s.properties.title === sheetName);
-            const sheetId = sheet ? sheet.properties.sheetId : 0;
+            const sheetObject = sheetMetadata.data.sheets.find(s => s.properties.title === sheetName);
+            const sheetId = sheetObject ? sheetObject.properties.sheetId : 0;
 
             // Delete row using batchUpdate
             await this.sheets.spreadsheets.batchUpdate({

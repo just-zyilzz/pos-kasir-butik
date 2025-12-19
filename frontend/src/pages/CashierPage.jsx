@@ -197,7 +197,7 @@ function CashierPage() {
                                 <div className="mb-4">
                                     {product.imageUrl ? (
                                         <img
-                                            src={`http://localhost:5000${product.imageUrl}`}
+                                            src={product.imageUrl}
                                             alt={product.nama}
                                             className="w-full h-40 object-cover rounded-lg border-2 border-primary/30"
                                         />

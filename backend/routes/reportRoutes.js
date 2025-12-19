@@ -3,16 +3,8 @@ const router = express.Router();
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 const sheetsService = require('../services/sheetsService');
-const fs = require('fs');
-const path = require('path');
 
-// Ensure reports directory exists
-const reportsDir = path.join(__dirname, '..', 'reports');
-if (!fs.existsSync(reportsDir)) {
-    fs.mkdirSync(reportsDir, { recursive: true });
-}
-
-// Generate PDF report
+// Generate PDF report (stream directly to response)
 router.post('/pdf', async (req, res) => {
     try {
         const { startDate, endDate } = req.body;
@@ -20,9 +12,13 @@ router.post('/pdf', async (req, res) => {
 
         const doc = new PDFDocument();
         const filename = `sales-report-${Date.now()}.pdf`;
-        const filepath = path.join(reportsDir, filename);
 
-        doc.pipe(fs.createWriteStream(filepath));
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        // Pipe PDF directly to response
+        doc.pipe(res);
 
         // Header
         doc.fontSize(20).text('Sales Report', { align: 'center' });
@@ -52,26 +48,13 @@ router.post('/pdf', async (req, res) => {
         });
 
         doc.end();
-
-        doc.on('finish', () => {
-            res.download(filepath, filename, (err) => {
-                if (err) {
-                    console.error('Error downloading PDF:', err);
-                }
-                // Clean up file after download
-                setTimeout(() => {
-                    if (fs.existsSync(filepath)) {
-                        fs.unlinkSync(filepath);
-                    }
-                }, 60000);
-            });
-        });
     } catch (error) {
+        console.error('Error generating PDF:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Generate Excel report
+// Generate Excel report (stream directly to response)
 router.post('/excel', async (req, res) => {
     try {
         const { startDate, endDate } = req.body;
@@ -121,22 +104,16 @@ router.post('/excel', async (req, res) => {
         summaryRow.font = { bold: true };
 
         const filename = `sales-report-${Date.now()}.xlsx`;
-        const filepath = path.join(reportsDir, filename);
 
-        await workbook.xlsx.writeFile(filepath);
+        // Set response headers
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-        res.download(filepath, filename, (err) => {
-            if (err) {
-                console.error('Error downloading Excel:', err);
-            }
-            // Clean up file after download
-            setTimeout(() => {
-                if (fs.existsSync(filepath)) {
-                    fs.unlinkSync(filepath);
-                }
-            }, 60000);
-        });
+        // Write directly to response
+        await workbook.xlsx.write(res);
+        res.end();
     } catch (error) {
+        console.error('Error generating Excel:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
