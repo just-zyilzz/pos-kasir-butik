@@ -11,6 +11,7 @@ function DebtManagementPage() {
     const [message, setMessage] = useState({ type: '', text: '' });
     const [showModal, setShowModal] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [selectedDebt, setSelectedDebt] = useState(null);
     const [editingDebt, setEditingDebt] = useState(null);
     const [formData, setFormData] = useState({
@@ -96,6 +97,11 @@ function DebtManagementPage() {
             tanggalPembayaran: new Date().toISOString().split('T')[0]
         });
         setShowPaymentModal(true);
+    };
+
+    const openHistoryModal = (debt) => {
+        setSelectedDebt(debt);
+        setShowHistoryModal(true);
     };
 
     const handleSubmit = async (e) => {
@@ -344,6 +350,12 @@ function DebtManagementPage() {
                                                 ✏️ Edit
                                             </button>
                                             <button
+                                                onClick={() => openHistoryModal(debt)}
+                                                className="text-blue-400 hover:text-blue-300 font-bold hover:scale-110 transition"
+                                            >
+                                                📜 History
+                                            </button>
+                                            <button
                                                 onClick={() => handleDelete(debt.id, debt.namaPenghutang)}
                                                 className="text-red-400 hover:text-red-300 font-bold hover:scale-110 transition"
                                             >
@@ -528,6 +540,45 @@ function DebtManagementPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* History Modal */}
+            {showHistoryModal && selectedDebt && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4">
+                    <div className="card-dark p-8 max-w-lg w-full animate-slide-in">
+                        <div className="flex items-center gap-3 mb-6">
+                            <span className="text-3xl">📜</span>
+                            <h2 className="text-3xl font-extrabold text-white">Payment History</h2>
+                        </div>
+
+                        <div className="mb-6">
+                            <p className="text-gray-400 text-sm">Debtor</p>
+                            <p className="text-white font-bold text-lg">{selectedDebt.namaPenghutang}</p>
+                        </div>
+
+                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2 mb-6">
+                            {selectedDebt.riwayatPembayaran ? (
+                                selectedDebt.riwayatPembayaran.split(';').map((entry, index) => {
+                                    const [date, amount] = entry.trim().split(':');
+                                    return (
+                                        <div key={index} className="glass-dark p-3 rounded-lg flex justify-between items-center">
+                                            <span className="text-gray-300">{date}</span>
+                                            <span className="font-bold text-green-300">{amount}</span>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p className="text-gray-500 italic">No payment history available</p>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={() => setShowHistoryModal(false)}
+                            className="w-full glass-dark hover:bg-white/10 text-white font-bold py-3 rounded-xl transition border border-gray-600"
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
             )}

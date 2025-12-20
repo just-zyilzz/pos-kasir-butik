@@ -118,4 +118,40 @@ router.post('/excel', async (req, res) => {
     }
 });
 
+
+// Generate Debt Report (Excel)
+router.post('/debt-report', async (req, res) => {
+    try {
+        const debts = await sheetsService.getAllDebts();
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Debt Report');
+
+        worksheet.columns = [
+            { header: 'Name', key: 'namaPenghutang', width: 25 },
+            { header: 'Total Debt', key: 'totalHutang', width: 20 },
+            { header: 'Remaining', key: 'sisaHutang', width: 20 },
+            { header: 'Status', key: 'status', width: 15 },
+            { header: 'Due Date', key: 'tanggalJatuhTempo', width: 15 },
+            { header: 'Notes', key: 'catatan', width: 30 },
+            { header: 'History', key: 'riwayatPembayaran', width: 50 }
+        ];
+
+        // Header Style
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+
+        debts.forEach(d => worksheet.addRow(d));
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="debt-report-${Date.now()}.xlsx"`);
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error('Error generating Debt Excel:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;

@@ -5,76 +5,73 @@ const sheetsService = require('../services/sheetsService');
 // Create new transaction
 router.post('/', async (req, res) => {
     try {
-        const { items, paymentMethod } = req.body;
+        const { items, paymentMethod, customerInfo } = req.body;
 
-        if (!items || items.length === 0) {
-            return res.status(400).json({ success: false, error: 'No items provided' });
+        // Validation
+        if (!items || items.length === 0) return res.status(400).json({ success: false, error: 'No items provided' });
+        if (!paymentMethod) return res.status(400).json({ success: false, error: 'Invalid payment method' });
+        if (paymentMethod === 'debt' && (!customerInfo || !customerInfo.name)) {
+            return res.status(400).json({ success: false, error: 'Customer Name is required for Debt transactions' });
         }
 
-        if (!paymentMethod || !['cash', 'debt'].includes(paymentMethod)) {
-            return res.status(400).json({ success: false, error: 'Invalid payment method' });
-        }
+        // 1. Batch Fetch Products (Optimization)
+        const allProducts = await sheetsService.getAllProducts();
+        const productMap = new Map(allProducts.map(p => [p.sku, p]));
 
         const transactionDate = new Date().toISOString().split('T')[0];
-        const results = [];
+        const processedItems = [];
+        let totalTransaction = 0;
 
+        // 2. Pre-flight Stock Validation
         for (const item of items) {
-            const { sku, qty } = item;
-
-            // Get product info
-            const product = await sheetsService.getProductBySKU(sku);
-            if (!product) {
-                return res.status(404).json({ success: false, error: `Product ${sku} not found` });
+            const product = productMap.get(item.sku);
+            if (!product) return res.status(404).json({ success: false, error: `Product ${item.sku} not found` });
+            if (product.stokSekarang < item.qty) {
+                return res.status(400).json({ success: false, error: `Insufficient stock for ${product.nama}` });
             }
 
-            // Validate stock
-            if (product.stokSekarang < qty) {
-                return res.status(400).json({
-                    success: false,
-                    error: `Insufficient stock for ${product.nama}. Available: ${product.stokSekarang}, Requested: ${qty}`
-                });
-            }
+            const total = product.hargaJual * item.qty;
+            processedItems.push({
+                product,
+                qty: item.qty,
+                transactionData: {
+                    tanggal: transactionDate,
+                    sku: product.sku,
+                    nama: product.nama,
+                    qty: item.qty,
+                    hargaJual: product.hargaJual,
+                    hpp: product.hpp,
+                    total: total,
+                    keuntungan: total - (product.hpp * item.qty),
+                }
+            });
+            totalTransaction += total;
+        }
 
-            // Calculate transaction values
-            const total = product.hargaJual * qty;
-            const totalHPP = product.hpp * qty;
-            const keuntungan = total - totalHPP;
-
-            // Prepare transaction log entry
-            const transaction = {
-                tanggal: transactionDate,
-                sku: product.sku,
-                nama: product.nama,
-                qty: qty,
-                hargaJual: product.hargaJual,
-                hpp: product.hpp,
-                total: total,
-                keuntungan: keuntungan,
-            };
-
-            // Append to transaction log
-            await sheetsService.appendTransaction(transaction);
-
-            // Update stock
-            const newStock = product.stokSekarang - qty;
-            await sheetsService.updateStock(sku, newStock);
-
-            results.push({
-                ...transaction,
-                newStock: newStock,
+        // 3. Record Debt (If Applicable)
+        if (paymentMethod === 'debt') {
+            const defaultDueDate = new Date();
+            defaultDueDate.setDate(defaultDueDate.getDate() + 30);
+            await sheetsService.addDebt({
+                namaPenghutang: customerInfo.name,
+                totalHutang: totalTransaction,
+                sisaHutang: totalTransaction,
+                cicilanPerBulan: 0,
+                tanggalJatuhTempo: customerInfo.dueDate || defaultDueDate.toISOString().split('T')[0],
+                catatan: customerInfo.notes || `POS Transaction`
             });
         }
 
-        res.json({
-            success: true,
-            data: {
-                paymentMethod,
-                date: transactionDate,
-                items: results,
-                totalAmount: results.reduce((sum, item) => sum + item.total, 0),
-                totalProfit: results.reduce((sum, item) => sum + item.keuntungan, 0),
-            }
-        });
+        // 4. Execute Writes (Append Transaction & Update Stock)
+        const results = [];
+        for (const item of processedItems) {
+            await sheetsService.appendTransaction(item.transactionData);
+            const newStock = item.product.stokSekarang - item.qty;
+            await sheetsService.updateStock(item.product.sku, newStock);
+            results.push({ ...item.transactionData, newStock });
+        }
+
+        res.json({ success: true, data: { items: results, totalAmount: totalTransaction } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }

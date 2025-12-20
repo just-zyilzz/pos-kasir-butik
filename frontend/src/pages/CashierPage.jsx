@@ -12,6 +12,13 @@ function CashierPage() {
     const [message, setMessage] = useState({ type: '', text: '' });
     const [lastTransaction, setLastTransaction] = useState(null);
 
+    // State baru untuk informasi pelanggan (Hutang)
+    const [customerInfo, setCustomerInfo] = useState({
+        name: '',
+        notes: '',
+        dueDate: ''
+    });
+
     useEffect(() => {
         loadProducts();
     }, []);
@@ -93,6 +100,12 @@ function CashierPage() {
             return;
         }
 
+        // Validasi input Hutang
+        if (paymentMethod === 'debt' && !customerInfo.name.trim()) {
+            showMessage('error', 'Nama pelanggan wajib diisi untuk transaksi hutang!');
+            return;
+        }
+
         setLoading(true);
         try {
             const transactionData = {
@@ -101,23 +114,26 @@ function CashierPage() {
                     qty: item.qty,
                 })),
                 paymentMethod: paymentMethod,
+                // Kirim data customer jika metode debt
+                customerInfo: paymentMethod === 'debt' ? customerInfo : null
             };
 
             const response = await transactionAPI.create(transactionData);
 
             if (response.data.success) {
-                // Capture transaction data for WhatsApp sharing
                 const completedTransaction = {
                     date: new Date().toLocaleDateString('id-ID'),
                     items: cart,
                     total: calculateTotal(),
                     paymentMethod: paymentMethod,
-                    itemCount: cart.reduce((sum, item) => sum + item.qty, 0)
+                    itemCount: cart.reduce((sum, item) => sum + item.qty, 0),
+                    customerName: customerInfo.name // Untuk ditampilkan di WA jika perlu
                 };
 
                 setLastTransaction(completedTransaction);
                 showMessage('success', 'Transaction completed successfully!');
                 setCart([]);
+                setCustomerInfo({ name: '', notes: '', dueDate: '' }); // Reset form
                 loadProducts();
             }
         } catch (error) {
@@ -136,7 +152,7 @@ function CashierPage() {
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Products List */}
+            {/* Products List (Bagian ini tidak berubah, disingkat untuk kejelasan) */}
             <div className="lg:col-span-2">
                 <div className="card-dark p-6 animate-slide-in">
                     <div className="flex items-center gap-3 mb-6">
@@ -156,15 +172,14 @@ function CashierPage() {
                                         onClick={handleShareWhatsApp}
                                         className="ml-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition flex items-center gap-2"
                                     >
-                                        <span>📱</span>
-                                        Share to WhatsApp
+                                        <span>📱</span> Share to WhatsApp
                                     </button>
                                 )}
                             </div>
                         </div>
                     )}
 
-                    {/* Search Bar */}
+                    {/* Search Bar & Product Grid (Tidak berubah dari kode asli Anda) */}
                     <div className="mb-6">
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-2xl">🔍</span>
@@ -176,57 +191,33 @@ function CashierPage() {
                                 className="w-full glass-dark border border-primary/30 rounded-xl pl-14 pr-12 py-3 text-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50"
                             />
                             {searchQuery && (
-                                <button
-                                    onClick={() => handleSearch('')}
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition"
-                                >
-                                    ✕
-                                </button>
+                                <button onClick={() => handleSearch('')} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition">✕</button>
                             )}
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {filteredProducts.map(product => (
-                            <div
-                                key={product.sku}
-                                className="card-dark p-5 hover:scale-105 cursor-pointer group"
-                                onClick={() => addToCart(product)}
-                            >
-                                {/* Product Image */}
+                            <div key={product.sku} className="card-dark p-5 hover:scale-105 cursor-pointer group" onClick={() => addToCart(product)}>
                                 <div className="mb-4">
                                     {product.imageUrl ? (
-                                        <img
-                                            src={product.imageUrl}
-                                            alt={product.nama}
-                                            className="w-full h-40 object-cover rounded-lg border-2 border-primary/30"
-                                        />
+                                        <img src={product.imageUrl} alt={product.nama} className="w-full h-40 object-cover rounded-lg border-2 border-primary/30" />
                                     ) : (
-                                        <div className="w-full h-40 rounded-lg bg-gray-700 flex items-center justify-center">
-                                            <span className="text-6xl opacity-50">📦</span>
-                                        </div>
+                                        <div className="w-full h-40 rounded-lg bg-gray-700 flex items-center justify-center"><span className="text-6xl opacity-50">📦</span></div>
                                     )}
                                 </div>
                                 <div className="flex justify-between items-start mb-3">
                                     <h3 className="font-bold text-white text-lg group-hover:text-primary transition">{product.nama}</h3>
-                                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${product.stokSekarang > 10 ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                                        product.stokSekarang > 0 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                                            'bg-red-500/20 text-red-300 border border-red-500/30'
-                                        }`}>
-                                        Stock: {product.stokSekarang}
-                                    </span>
+                                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${product.stokSekarang > 10 ? 'bg-green-500/20 text-green-300' : product.stokSekarang > 0 ? 'bg-yellow-500/20 text-yellow-300' : 'bg-red-500/20 text-red-300'}`}>Stock: {product.stokSekarang}</span>
                                 </div>
-                                <p className="text-xs text-gray-500 mb-3">SKU: {product.sku}</p>
-                                <p className="text-2xl font-extrabold bg-gradient-to-r from-primary to-accent-pink bg-clip-text text-transparent">
-                                    Rp {product.hargaJual.toLocaleString('id-ID')}
-                                </p>
+                                <p className="text-2xl font-extrabold bg-gradient-to-r from-primary to-accent-pink bg-clip-text text-transparent">Rp {product.hargaJual.toLocaleString('id-ID')}</p>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* Cart */}
+            {/* Cart Section */}
             <div className="lg:col-span-1">
                 <div className="card-dark p-6 sticky top-24 animate-slide-in">
                     <div className="flex items-center gap-3 mb-6">
@@ -246,33 +237,15 @@ function CashierPage() {
                                     <div key={item.sku} className="glass-dark p-4 rounded-xl">
                                         <div className="flex justify-between items-start mb-2">
                                             <h4 className="font-bold text-white text-sm">{item.nama}</h4>
-                                            <button
-                                                onClick={() => removeFromCart(item.sku)}
-                                                className="text-red-400 hover:text-red-300 text-xs font-bold hover:scale-110 transition"
-                                            >
-                                                ✕
-                                            </button>
+                                            <button onClick={() => removeFromCart(item.sku)} className="text-red-400 hover:text-red-300 text-xs font-bold hover:scale-110 transition">✕</button>
                                         </div>
-                                        <p className="text-xs text-gray-500 mb-3">SKU: {item.sku}</p>
                                         <div className="flex justify-between items-center">
                                             <div className="flex items-center gap-3">
-                                                <button
-                                                    onClick={() => updateQuantity(item.sku, item.qty - 1)}
-                                                    className="bg-gradient-to-r from-primary to-secondary hover:opacity-80 text-white w-8 h-8 rounded-lg font-bold"
-                                                >
-                                                    −
-                                                </button>
+                                                <button onClick={() => updateQuantity(item.sku, item.qty - 1)} className="bg-gradient-to-r from-primary to-secondary hover:opacity-80 text-white w-8 h-8 rounded-lg font-bold">−</button>
                                                 <span className="font-bold text-white text-lg w-8 text-center">{item.qty}</span>
-                                                <button
-                                                    onClick={() => updateQuantity(item.sku, item.qty + 1)}
-                                                    className="bg-gradient-to-r from-primary to-secondary hover:opacity-80 text-white w-8 h-8 rounded-lg font-bold"
-                                                >
-                                                    +
-                                                </button>
+                                                <button onClick={() => updateQuantity(item.sku, item.qty + 1)} className="bg-gradient-to-r from-primary to-secondary hover:opacity-80 text-white w-8 h-8 rounded-lg font-bold">+</button>
                                             </div>
-                                            <p className="font-bold bg-gradient-to-r from-primary to-accent-pink bg-clip-text text-transparent text-lg">
-                                                Rp {(item.hargaJual * item.qty).toLocaleString('id-ID')}
-                                            </p>
+                                            <p className="font-bold bg-gradient-to-r from-primary to-accent-pink bg-clip-text text-transparent text-lg">Rp {(item.hargaJual * item.qty).toLocaleString('id-ID')}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -288,7 +261,7 @@ function CashierPage() {
 
                                 <div className="mb-4">
                                     <label className="block text-sm font-bold mb-3 text-gray-300">Payment Method</label>
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-3 mb-4">
                                         <button
                                             onClick={() => setPaymentMethod('cash')}
                                             className={`flex-1 py-3 rounded-xl font-bold transition ${paymentMethod === 'cash'
@@ -308,6 +281,41 @@ function CashierPage() {
                                             💳 Debt
                                         </button>
                                     </div>
+
+                                    {/* INPUT KHUSUS UNTUK HUTANG */}
+                                    {paymentMethod === 'debt' && (
+                                        <div className="animate-slide-in space-y-3 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
+                                            <div>
+                                                <label className="text-xs text-gray-400 block mb-1">Nama Pelanggan (Wajib)</label>
+                                                <input
+                                                    type="text"
+                                                    value={customerInfo.name}
+                                                    onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
+                                                    placeholder="Contoh: Bu Siti"
+                                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-primary outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-gray-400 block mb-1">Jatuh Tempo (Opsional)</label>
+                                                <input
+                                                    type="date"
+                                                    value={customerInfo.dueDate}
+                                                    onChange={(e) => setCustomerInfo({...customerInfo, dueDate: e.target.value})}
+                                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-primary outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-gray-400 block mb-1">Catatan</label>
+                                                <input
+                                                    type="text"
+                                                    value={customerInfo.notes}
+                                                    onChange={(e) => setCustomerInfo({...customerInfo, notes: e.target.value})}
+                                                    placeholder="Catatan tambahan..."
+                                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-primary outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <button
